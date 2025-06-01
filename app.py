@@ -18,7 +18,7 @@ for nombre, path in emociones.items():
     with st.sidebar.expander(f"▶️ {nombre}", expanded=False):
         st.audio(path)
 
-st.header("📤 Análisis de audio personalizado")
+st.header("📤 Análisis de audios personalizados")
 audio_file = st.file_uploader("Sube un archivo .wav (voz masculina)", type=["wav"])
 
 if audio_file:
