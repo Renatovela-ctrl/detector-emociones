@@ -51,7 +51,9 @@ def clasificar_emocion(carac):
         puntajes['TRISTEZA'] += 1
         puntajes['CALMA'] += 1
 
-    if cero_cruces > 0.01:
+    if cero_cruces > 0.03:
+        puntajes['IRA'] += 1
+    elif cero_cruces > 0.01:
         puntajes['PÁNICO'] += 1
     elif cero_cruces < 0.01:
         puntajes['TRISTEZA'] += 1
