@@ -57,22 +57,20 @@ def clasificar_emocion(carac):
         puntajes['TRISTEZA'] += 1
         puntajes['CALMA'] += 1
 
-    if centroide > 1600:
+    if centroide > 3300:
+        puntajes['CALMA'] += 1
+    elif centroide < 2800:
         puntajes['IRA'] += 1
         puntajes['PÁNICO'] += 1
-    elif centroide < 800:
-        puntajes['TRISTEZA'] += 1
-        puntajes['CALMA'] += 1
 
-    if proporcion_altas > 0.4:
-        puntajes['IRA'] += 1
-    elif proporcion_altas < 0.2:
-        puntajes['TRISTEZA'] += 1
+    if proporcion_altas > 1.1:
         puntajes['CALMA'] += 1
-
-    if proporcion_media > 1.5:
+    elif proporcion_altas < 0.9:
         puntajes['PÁNICO'] += 1
-    elif proporcion_media < 0.7:
-        puntajes['CALMA'] += 1
+
+    if proporcion_media > 5:
+        puntajes['PÁNICO'] += 1
+    elif proporcion_media < 4:
+        puntajes['TRISTEZA'] += 1
 
     return max(puntajes, key=puntajes.get)
