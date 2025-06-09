@@ -44,11 +44,7 @@ def clasificar_emocion(carac):
 
     puntajes = {'IRA': 0, 'PÁNICO': 0, 'TRISTEZA': 0, 'CALMA': 0}
 
-    if energia > 0.02:
-        puntajes['IRA'] += 1
-        puntajes['PÁNICO'] += 1
-    elif energia < 0.012:
-        puntajes['TRISTEZA'] += 1
+    if energia > 1500:
         puntajes['CALMA'] += 1
 
     if cero_cruces > 0.03:
