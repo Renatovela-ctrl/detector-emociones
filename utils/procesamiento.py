@@ -55,12 +55,18 @@ def clasificar_emocion(carac):
         puntajes['CALMA'] += 3  # énfasis a calma tranquila
 
     # --- PÁNICO ---
-    if energia > 300 and proporcion_media > 9 and proporcion_altas < 1.3:
-        puntajes['PÁNICO'] += 4
+    if energia > 300:
+        puntajes['PÁNICO'] += 2
+    if proporcion_media > 9:
+        puntajes['PÁNICO'] += 3
+    else:
+        puntajes['PÁNICO'] -= 2  # ⚠️ penaliza si no cumple este umbral clave
+    if proporcion_altas < 1.2:
+        puntajes['PÁNICO'] += 1
     if cero_cruces > 0.13:
         puntajes['PÁNICO'] += 1
-    if centroide < 3400:
-        puntajes['PÁNICO'] += 1
+    elif cero_cruces == 0:
+        puntajes['PÁNICO'] -= 3  # ⚠️ penaliza si es completamente estable (tranquilo)
 
     # Penalización adicional si calma parece pánico
     if energia < 30 and proporcion_altas > 1.3 and proporcion_media < 5:
