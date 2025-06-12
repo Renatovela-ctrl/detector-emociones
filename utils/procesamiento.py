@@ -1,3 +1,40 @@
+import numpy as np
+import librosa
+
+def calcular_fft(segmento, sr):
+    N = len(segmento)
+    fft = np.fft.fft(segmento)
+    magnitud = np.abs(fft)[:N // 2]
+    freqs = np.fft.fftfreq(N, 1/sr)[:N // 2]
+    return freqs, magnitud
+
+def extraer_caracteristicas(segmento, sr):
+    energia = np.sum(segmento**2)
+    cero_cruces = librosa.feature.zero_crossing_rate(segmento)[0][0]
+    freqs, magnitud = calcular_fft(segmento, sr)
+    centroide = np.sum(freqs * magnitud) / (np.sum(magnitud) + 1e-12)
+    rolloff = librosa.feature.spectral_rolloff(y=segmento, sr=sr)[0][0]
+
+    bandas = {
+        'baja': np.sum(magnitud[(freqs >= 0) & (freqs < 300)]),
+        'media': np.sum(magnitud[(freqs >= 300) & (freqs < 1500)]),
+        'alta': np.sum(magnitud[(freqs >= 1500)])
+    }
+
+    proporcion_altas = bandas['alta'] / (bandas['media'] + 1e-12)
+    proporcion_media = bandas['media'] / (bandas['baja'] + 1e-12)
+
+    return {
+        'energia': energia,
+        'centroide': centroide,
+        'rolloff': rolloff,
+        'cero_cruces': cero_cruces,
+        'proporcion_altas': proporcion_altas,
+        'proporcion_media': proporcion_media,
+        'frecuencias': freqs,
+        'magnitudes': magnitud
+    }
+
 def clasificar_emocion(carac):
     energia = carac['energia']
     cero_cruces = carac['cero_cruces']
