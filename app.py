@@ -6,6 +6,17 @@ from utils.procesamiento import extraer_caracteristicas, clasificar_emocion
 st.set_page_config(page_title="Detector de Emociones en la Voz", layout="wide")
 st.title("🎙️ Detector de Emociones en la Voz con FFT")
 
+st.markdown("""
+### ℹ️ Criterios de Clasificación de Emociones
+
+- **TRISTEZA**: Incluye tanto emociones de tristeza como **preocupación**.
+- **CALMA**: Representa estados de calma, serenidad y también incluye **alegría**.
+- **IRA**: Abarca la ira y sus variantes intensas como la **furia** y también **euforia**.
+- **PÁNICO**: Corresponde a estados de ansiedad o pánico pronunciado.
+
+> 🔍 La clasificación se basa en análisis de características espectrales extraídas de los primeros 2 segundos del audio de voz.
+""")
+
 st.sidebar.header("🔊 Audios de ejemplo")
 emociones = {
     "IRA": "ejemplos/ira.wav",
