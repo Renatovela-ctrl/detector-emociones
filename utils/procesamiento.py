@@ -44,44 +44,65 @@ def clasificar_emocion(carac):
 
     puntajes = {'IRA': 0, 'PÁNICO': 0, 'TRISTEZA': 0, 'CALMA': 0}
 
-    # --- DESCARTES PREVIOS PARA EVITAR ERRORES ---
+    # --- DESCARTES preventivos ---
     if energia < 50:
-        puntajes['IRA'] = 0  # Muy baja energía: descarta ira
-    if proporcion_media > 9 and energia < 100:
-        puntajes['TRISTEZA'] = 0  # Proporción media alta no concuerda con tristeza
+        puntajes['IRA'] = 0
+    if energia < 80:
+        puntajes['PÁNICO'] -= 2  # baja energía ≠ pánico
+    if proporcion_media < 4:
+        puntajes['PÁNICO'] -= 1  # media muy baja ≠ pánico
+    if energia < 15 and proporcion_media < 3 and centroide > 3300:
+        puntajes['CALMA'] += 3  # énfasis a calma tranquila
 
-    # --- CONDICIONES COMBINADAS DE CLASIFICACIÓN ---
-
-    # PÁNICO
-    if energia > 300:
-        puntajes['PÁNICO'] += 2
-    if proporcion_media > 9 and proporcion_altas < 1.3:
-        puntajes['PÁNICO'] += 3
-    if cero_cruces > 0.13 and centroide < 3300:
+    # --- PÁNICO ---
+    if energia > 300 and proporcion_media > 9 and proporcion_altas < 1.3:
+        puntajes['PÁNICO'] += 4
+    if cero_cruces > 0.13:
+        puntajes['PÁNICO'] += 1
+    if centroide < 3400:
         puntajes['PÁNICO'] += 1
 
-    # IRA (incluye furia y euforia)
-    if energia > 250 and proporcion_media > 4 and proporcion_altas > 1.3:
-        puntajes['IRA'] += 3
-    if cero_cruces > 0.13 and centroide > 3400:
+    # Penalización adicional si calma parece pánico
+    if energia < 30 and proporcion_altas > 1.3 and proporcion_media < 5:
+        puntajes['PÁNICO'] -= 2
+        puntajes['CALMA'] += 2
+
+    # --- IRA ---
+    if energia > 250 and 4 < proporcion_media < 10 and proporcion_altas > 1.3:
+        puntajes['IRA'] += 4
+    if cero_cruces > 0.13:
+        puntajes['IRA'] += 2
+    if centroide > 3400:
         puntajes['IRA'] += 2
     if proporcion_media < 3:
-        puntajes['IRA'] -= 1  # Penaliza incoherencia
+        puntajes['IRA'] -= 1
 
-    # TRISTEZA (incluye preocupación)
+    # --- TRISTEZA ---
     if energia < 20 and proporcion_media < 4 and centroide < 3400:
-        puntajes['TRISTEZA'] += 3
+        puntajes['TRISTEZA'] += 4
     if cero_cruces < 0.11:
+        puntajes['TRISTEZA'] += 2
+    if proporcion_altas < 1.4:
         puntajes['TRISTEZA'] += 1
-    if energia > 250:
-        puntajes['TRISTEZA'] -= 2  # Muy alta energía no concuerda con tristeza
-
-    # CALMA (incluye alegría)
-    if energia < 15 and proporcion_altas > 1.3 and proporcion_media < 4:
-        puntajes['CALMA'] += 3
-    if cero_cruces < 0.12 and 3400 < centroide < 4000:
-        puntajes['CALMA'] += 2
     if energia > 100:
-        puntajes['CALMA'] -= 2  # Demasiada energía para calma
+        puntajes['TRISTEZA'] -= 1
+
+    # --- CALMA ---
+    if energia < 15 and proporcion_altas > 1.3 and proporcion_media < 4:
+        puntajes['CALMA'] += 4
+    if cero_cruces < 0.12:
+        puntajes['CALMA'] += 2
+    if 3400 < centroide < 4000:
+        puntajes['CALMA'] += 2
+    if energia < 20 and proporcion_media < 3 and proporcion_altas > 1.4:
+        puntajes['CALMA'] += 2
+
+    # --- Desempates con prioridad emocional ---
+    if len(set(puntajes.values())) != len(puntajes.values()):
+        prioridad = ['IRA', 'PÁNICO', 'TRISTEZA', 'CALMA']
+        maximo = max(puntajes.values())
+        for emo in prioridad:
+            if puntajes[emo] == maximo:
+                return emo
 
     return max(puntajes, key=puntajes.get)
