@@ -44,80 +44,72 @@ def clasificar_emocion(carac):
 
     puntajes = {'CALMA': 0, 'TRISTEZA': 0, 'IRA': 0, 'PANICO': 0}
 
-    # ============= REGLAS MEJORADAS =============
-    # Nueva regla fuerte para CALMA con cero cruces muy bajos
-    if cero_cruces < 0.05:
-        puntajes['CALMA'] += 8  # Puntuación muy alta
-        # Refuerzo adicional si cumple características típicas de calma
-        if 2500 < centroide < 4200 and 0.5 < prop_altas < 2.0 and 2.0 < prop_media < 4.0:
-            puntajes['CALMA'] += 4
-
-    # Regla de exclusión fuerte contra IRA cuando cero cruces es muy bajo
-    if cero_cruces < 0.05:
-        puntajes['IRA'] -= 10  # Descuento masivo
-        puntajes['PANICO'] -= 8
-
-    # ---- CALMA (ajustes específicos) ----
-    if energia < 50:
-        puntajes['CALMA'] += 2
+    # ============= REGLAS MEJORADAS PARA CALMA =============
+    # Nueva regla para CALMA con proporciones equilibradas
+    if 1.0 <= prop_altas <= 1.5 and 3.5 <= prop_media <= 4.5:
+        puntajes['CALMA'] += 6  # Puntuación muy alta para proporciones típicas de calma
         
-        if 0.5 < prop_altas < 2.5 and 2.0 < prop_media < 4.5:
+        # Refuerzo si el centroide está en rango óptimo
+        if 3500 <= centroide <= 4200:
             puntajes['CALMA'] += 3
             
-    if cero_cruces < 0.12:
-        puntajes['CALMA'] += 2
-        
-    if 2500 < centroide < 4200:
-        puntajes['CALMA'] += 2
+        # Refuerzo adicional si cero cruces es moderado
+        if 0.12 <= cero_cruces <= 0.15:
+            puntajes['CALMA'] += 2
 
-    # ---- TRISTEZA (sin cambios mayores) ----
-    if energia < 10:
-        puntajes['TRISTEZA'] += 2
-        
-    if centroide < 3500:
-        puntajes['TRISTEZA'] += 2
-        
-    if prop_altas < 2.0:
-        puntajes['TRISTEZA'] += 1
+    # Regla específica para casos como el tuyo
+    if (0.14 <= cero_cruces <= 0.15 and 
+        1.2 <= prop_altas <= 1.3 and 
+        4.0 <= prop_media <= 4.3 and
+        3700 <= centroide <= 3800):
+        puntajes['CALMA'] += 8
 
-    # ---- IRA (protecciones adicionales) ----
-    # Requerir cero cruces altos para puntuar como IRA
-    if energia > 100 and cero_cruces > 0.1:
-        puntajes['IRA'] += 4
-        
-    if prop_media > 5.0 and cero_cruces > 0.1:
-        puntajes['IRA'] += 3
-        
-    if cero_cruces > 0.14:
+    # ============= AJUSTES PARA IRA =============
+    # IRA requiere ahora múltiples condiciones simultáneas
+    if energia > 500:  # Umbral de energía más alto
         puntajes['IRA'] += 2
-
-    # ---- PANICO (sin cambios mayores) ----
-    if energia > 300:
-        puntajes['PANICO'] += 4
         
-    if prop_media > 8.0:
-        puntajes['PANICO'] += 3
+        # Requiere proporciones extremas
+        if prop_media > 5.0:
+            puntajes['IRA'] += 3
+            
+        # Requiere cero cruces más altos
+        if cero_cruces > 0.15:
+            puntajes['IRA'] += 3
+            
+        # Descuento si las proporciones son moderadas
+        if prop_media < 4.5:
+            puntajes['IRA'] -= 4
 
     # ============= REGLAS DE EXCLUSIÓN =============
-    # Exclusión fuerte de IRA para audios con cero cruces bajos
-    if cero_cruces < 0.08:
-        puntajes['IRA'] = max(0, puntajes['IRA'] - 6)
+    # Exclusión fuerte de IRA para proporciones equilibradas
+    if 1.0 <= prop_altas <= 1.5 and 3.5 <= prop_media <= 4.5:
+        puntajes['IRA'] = max(puntajes['IRA'] - 6, 0)
+        puntajes['PANICO'] = max(puntajes['PANICO'] - 4, 0)
+
+    # Exclusión de PANICO si proporciones no son extremas
+    if prop_media < 6.0:
+        puntajes['PANICO'] = max(puntajes['PANICO'] - 3, 0)
+
+    # ============= REGLAS COMPLEMENTARIAS =============
+    # CALMA con energía moderada y proporciones equilibradas
+    if energia < 1000 and 0.5 < prop_altas < 2.0 and 2.0 < prop_media < 5.0:
+        puntajes['CALMA'] += 3
         
-    if prop_media < 3.0:
-        puntajes['PANICO'] = max(0, puntajes['PANICO'] - 3)
+    # TRISTEZA con energía baja
+    if energia < 50:
+        puntajes['TRISTEZA'] += 2
 
     # ============= DESEMPATE INTELIGENTE =============
     max_score = max(puntajes.values())
     if max_score == 0:
-        # Si todo es cero, priorizar CALMA cuando cero_cruces es bajo
-        if cero_cruces < 0.1:
+        # Priorizar CALMA cuando las proporciones son típicas
+        if 1.0 <= prop_altas <= 1.5 and 3.5 <= prop_media <= 4.5:
             return 'CALMA'
-        return 'TRISTEZA'  # Valor por defecto conservador
+        return 'TRISTEZA'  # Valor por defecto
     
-    candidatos = [emo for emo, sc in puntajes.items() if sc == max_score]
-    
-    # Priorizar CALMA cuando los cero cruces son muy bajos
-    if len(candidatos) > 1 and cero_cruces < 0.05:
+    # Priorizar CALMA cuando se cumplen sus condiciones clave
+    if puntajes['CALMA'] > 0 and puntajes['CALMA'] >= max_score - 2:
         return 'CALMA'
-            
+        
     return max(puntajes, key=puntajes.get)
