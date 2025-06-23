@@ -5,7 +5,7 @@ import numpy as np
 from utils.procesamiento import extraer_caracteristicas, modelo, escalador
 
 st.set_page_config(page_title="Detector de Emociones en la Voz", layout="wide")
-st.title("🎙️ Detector de Emociones en la Voz con FFT + MFCC")
+st.title("🎙️ Detector de Emociones en la Voz con FFT")
 
 st.markdown("""
 ### ℹ️ Criterios de Clasificación de Emociones
