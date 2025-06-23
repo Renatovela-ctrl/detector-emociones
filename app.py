@@ -2,7 +2,7 @@ import streamlit as st
 import librosa
 import matplotlib.pyplot as plt
 import numpy as np
-from utils.procesamiento import extraer_caracteristicas, modelo, escalador
+from utils.procesamiento import extraer_caracteristicas, modelo, escalador, calcular_fft
 
 st.set_page_config(page_title="Detector de Emociones en la Voz", layout="wide")
 st.title("🎙️ Detector de Emociones en la Voz con FFT")
@@ -10,14 +10,15 @@ st.title("🎙️ Detector de Emociones en la Voz con FFT")
 st.markdown("""
 ### ℹ️ Criterios de Clasificación de Emociones
 
-- **TRISTEZA**: Incluye tanto emociones de tristeza como **preocupación**.
-- **CALMA**: Representa estados de calma, serenidad y también incluye **alegría**.
-- **IRA**: Abarca la ira y sus variantes intensas como la **furia** y también **euforia**.
-- **PÁNICO**: Corresponde a estados de ansiedad o pánico pronunciado.
+- **TRISTEZA**: Incluye tristeza y **preocupación**.
+- **CALMA**: Serenidad, tranquilidad y también **alegría**.
+- **IRA**: Ira, **furia** o incluso **euforia** intensa.
+- **PÁNICO**: Estados de ansiedad o **miedo** pronunciado.
 
-> 🔍 La clasificación se basa en análisis de características espectrales (MFCCs y otras) extraídas de los primeros 2 segundos del audio.
+> 🔍 El análisis se basa en características espectrales (MFCCs, energía, etc.) extraídas de los **primeros 2 segundos** del audio.
 """)
 
+# Sidebar con audios de ejemplo
 st.sidebar.header("🔊 Audios de ejemplo")
 emociones = {
     "IRA": "ejemplos/ira.wav",
@@ -30,6 +31,7 @@ for nombre, path in emociones.items():
     with st.sidebar.expander(f"▶️ {nombre}", expanded=False):
         st.audio(path)
 
+# Carga de audio personalizado
 st.header("📤 Análisis de audio personalizado")
 audio_file = st.file_uploader("Sube un archivo .wav (voz masculina)", type=["wav"])
 
@@ -38,22 +40,27 @@ if audio_file:
     y = y / max(abs(y)) if np.max(np.abs(y)) > 0 else y
     st.audio(audio_file)
 
-    segmento = y[:int(sr*2)]
-
+    segmento = y[:int(sr * 2)]
     carac = extraer_caracteristicas(segmento, sr)
     X = np.array(carac).reshape(1, -1)
     X = escalador.transform(X)
-    emocion = modelo.predict(X)[0]
 
+    # Predicción
+    probs = modelo.predict_proba(X)[0]
+    clases = modelo.classes_
+    emocion = clases[np.argmax(probs)]
+    confianza = np.max(probs) * 100
+
+    # Mostrar resultado
     st.subheader(f"🧠 Emoción detectada: **{emocion}**")
+    st.markdown(f"📈 Nivel de confianza: **{confianza:.1f}%**")
 
-    # Mostrar MFCCs
-    st.markdown("#### 🎚️ Coeficientes MFCC")
-    for i in range(13):
-        st.write(f"MFCC {i+1}: {round(carac[i], 2)}")
+    # Mostrar probabilidades por clase en gráfico de barras
+    st.markdown("#### 🔢 Distribución de probabilidad por emoción")
+    st.bar_chart({clase: prob for clase, prob in zip(clases, probs)})
 
-    # Mostrar otras características
-    st.markdown("#### 📊 Otras características espectrales")
+    # Mostrar otras características (no MFCCs)
+    st.markdown("#### 📊 Características espectrales (resumen)")
     st.json({
         "Energía": round(carac[13], 5),
         "Cero cruces": round(carac[14], 3),
@@ -64,7 +71,6 @@ if audio_file:
     })
 
     # Gráfico FFT
-    from utils.procesamiento import calcular_fft
     freqs, magnitudes = calcular_fft(segmento, sr)
     fig, ax = plt.subplots()
     ax.plot(freqs, magnitudes)
