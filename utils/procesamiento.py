@@ -3,7 +3,6 @@ import librosa
 import joblib
 import os
 
-# Cargar modelo y escalador entrenados (solo una vez)
 modelo_path = 'modelo_entrenado.pkl'
 escalador_path = 'escalador.pkl'
 
@@ -13,7 +12,6 @@ if not os.path.exists(modelo_path) or not os.path.exists(escalador_path):
 modelo = joblib.load(modelo_path)
 escalador = joblib.load(escalador_path)
 
-# -------- Función para calcular características --------
 def calcular_fft(segmento, sr):
     N = len(segmento)
     fft = np.fft.fft(segmento)
@@ -22,11 +20,18 @@ def calcular_fft(segmento, sr):
     return freqs, magnitud
 
 def extraer_caracteristicas(segmento, sr):
-    energia = np.sum(segmento**2)
-    cero_cruces = librosa.feature.zero_crossing_rate(segmento)[0][0]
+    if len(segmento) < sr * 2:
+        segmento = np.pad(segmento, (0, sr*2 - len(segmento)))
+    else:
+        segmento = segmento[:sr*2]
+
+    segmento = segmento / np.max(np.abs(segmento)) if np.max(np.abs(segmento)) > 0 else segmento
     freqs, magnitud = calcular_fft(segmento, sr)
-    centroide = np.sum(freqs * magnitud) / (np.sum(magnitud) + 1e-12)
-    rolloff = librosa.feature.spectral_rolloff(y=segmento, sr=sr)[0][0]
+
+    energia = np.sum(segmento ** 2)
+    cero_cruces = librosa.feature.zero_crossing_rate(segmento)[0].mean()
+    centroide = librosa.feature.spectral_centroid(y=segmento, sr=sr)[0].mean()
+    rolloff = librosa.feature.spectral_rolloff(y=segmento, sr=sr)[0].mean()
 
     bandas = {
         'baja': np.sum(magnitud[(freqs >= 0) & (freqs < 300)]),
@@ -34,19 +39,17 @@ def extraer_caracteristicas(segmento, sr):
         'alta': np.sum(magnitud[(freqs >= 1500)])
     }
 
-    proporcion_altas = bandas['alta'] / (bandas['media'] + 1e-12)
-    proporcion_media = bandas['media'] / (bandas['baja'] + 1e-12)
+    proporcion_altas = bandas['alta'] / (bandas['media'] + 1e-6)
+    proporcion_media = bandas['media'] / (bandas['baja'] + 1e-6)
 
-    return [energia, cero_cruces, centroide, rolloff, proporcion_altas, proporcion_media]
+    mfccs = librosa.feature.mfcc(y=segmento, sr=sr, n_mfcc=13)
+    mfccs_mean = mfccs.mean(axis=1)
 
-# -------- Función para clasificar emoción con modelo --------
-def clasificar_emocion(audio_path):
-    try:
-        segmento, sr = librosa.load(audio_path, sr=None)
-        caracteristicas = extraer_caracteristicas(segmento, sr)
-        caracteristicas_np = np.array(caracteristicas).reshape(1, -1)
-        caracteristicas_np = escalador.transform(caracteristicas_np)
-        emocion = modelo.predict(caracteristicas_np)[0]
-        return emocion
-    except Exception as e:
-        return f"Error en clasificación: {str(e)}"
+    return list(mfccs_mean) + [
+        energia,
+        cero_cruces,
+        centroide,
+        rolloff,
+        proporcion_altas,
+        proporcion_media
+    ]
